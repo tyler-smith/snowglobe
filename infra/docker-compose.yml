@@ -1,0 +1,75 @@
+version: "3"
+services:
+  caddy:
+    image: abiosoft/caddy:1.0.3-no-stats
+    ports:
+      - 80:80
+      - 443:443
+    environment:
+      ACME_AGREE: "true"
+      CADDYPATH: "/etc/caddycerts"
+    volumes:
+      - ./.caddy:/etc/caddycerts
+      - ./Caddyfile:/etc/Caddyfile
+    restart: always
+    networks:
+      - frontend
+      - backend
+    depends_on:
+      - snowglobe1
+  snowglobe1: &snowglobe
+    image: sherpacash/snowglobed:e4c8d31
+    entrypoint:
+      [
+        "bchd",
+        "--prune",
+        "--fastsync",
+        "--nocfilters",
+        "--prunedepth=288",
+        "-b",
+        "/var/lib/snowglobe",
+        "-C",
+        "/var/lib/snowglobe/bchd.conf",
+        "-d",
+        "debug",
+
+        "--listen",
+        "0.0.0.0:8333",
+        "--rpclisten",
+        "127.0.0.1:8334",
+        "--grpclisten=",
+        "127.0.0.1:8335",
+
+        "--rpcuser",
+        "snowglobe",
+        "--rpcpass",
+        "snowglobe",
+        "--rpccert",
+        "/var/lib/snowglobe/rpc.cert",
+        "--rpckey",
+        "/var/lib/snowglobe/rpc.key",
+      ]
+    environment:
+      SNOWGLOBE_ENABLE_DURABLE_AUDIT: "false"
+    ports:
+      - 8333:8333
+      - 8334:8334
+    volumes:
+      - /var/lib/snowglobe3:/var/lib/snowglobe
+    restart: on-failure
+    logging:
+      options:
+        max-size: "1M"
+        max-file: "10"
+    networks:
+      - backend
+  snowglobe2:
+    <<: *snowglobe
+    ports:
+      - 8433:8333
+      - 8434:8334
+    volumes:
+      - /var/lib/snowglobe4:/var/lib/snowglobe
+networks:
+  frontend:
+  backend:

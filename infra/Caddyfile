@@ -1,0 +1,7 @@
+https://grpc.snowglobe.cash {
+  proxy / https://snowglobe1:8335 {
+    insecure_skip_verify
+  }
+  log /var/log/grpc.snowglobe.cash.log
+}
+
