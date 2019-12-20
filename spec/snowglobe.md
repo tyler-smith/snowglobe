@@ -1,7 +1,7 @@
-**NOTE: This document is an unfinished work in progress, working toward v0.1.0!**
-
 <pre>
-  Title: Active local state reconcilation using Avalanche
+  NOTE: This document is an unfinished work in progress, working toward v0.1.0!
+
+  Title: Active local state reconciliation using Avalanche
   Author: Tyler Smith (tcrypt) <tylersmith.me@gmail.com>
   Status: Draft
   Created: 2019-10-01
@@ -19,7 +19,7 @@
   - [Acceptance Depth](#acceptance-depth)
   - [Sybil resistance via coin age](#sybil-resistance-via-coin-age)
   - [DAG and conflict-set Formation](#dag-and-conflict-set-formation)
-  - [Sampling Lopp](#sampling-lopp)
+  - [Sampling Loop](#sampling-loop)
   - [Vote Accumulation](#vote-accumulation)
   - [Post-finalization Mempool Update](#post-finalization-mempool-update)
   - [New p2p messages](#new-p2p-messages)
@@ -28,7 +28,7 @@
     - [QueryResponse](#queryresponse)
   - [Joining Full Consensus](#joining-full-consensus)
 - [Future Improvements](#future-improvements)
-  - [Deduplicated UTXO signatures](#deduplicated-utxo-signatures)
+  - [Deduplicate UTXO signatures](#deduplicate-utxo-signatures)
   - [Short IDs](#short-ids)
   - [Short Votes](#short-votes)
   - [Noise authenticated tunnel](#noise-authenticated-tunnel)
@@ -40,17 +40,17 @@
 
 # Abstract
 
-This document specifies a propogation protocol for nodes of a Nakamoto Consensus network in which participants actively work to reconcile their local states against each other. It enables nodes to sample each others' state in order to determine which item of a conflict set is currently chosen by the most nodes, and to work toward a super majority of nodes chosing the same set of items. An Avalanche-based consensus algorithm is used for this process affording the protocol asyncrony, metastability, and quiescent finality.
+This document specifies a propagation protocol for nodes of a Nakamoto Consensus network in which participants actively work to reconcile their local states against each other. It enables nodes to sample each others' state in order to determine which item of a conflict set is currently chosen by the most nodes, and to work toward a super majority of nodes choosing the same set of items. An Avalanche-based consensus algorithm is used for this process affording the protocol asynchrony, metastability, and quiescent finality.
 
 This document will not go into the details of the Avalanche algorithms and knowledge of them is assumed of the reader.
 
 # Motivation
 
-The benefits of reducing inter-node entropy on the Bitcoin Cash network has been widely discussed, some of which include increased propogation performance([[1]](#References), faster tranasaction finality/double spend protection[[2]](#References), and stronger Byzantine resistance against chain short to medium term reorganization attacks[[3]](#References).
+The benefits of reducing inter-node entropy on the Bitcoin Cash network has been widely discussed, some of which include increased propagation performance([[1]](#References), faster transaction finality/double spend protection[[2]](#References), and stronger Byzantine resistance against chain short to medium term reorganization attacks[[3]](#References).
 
-Nakamoto Concensus has the proptery of objectivity which is required for nodes wishing to join the consensus trustlessly, and it's acheived using proof of work to give every state a real-world weight. Unfortunately this imposes some non-ideal requirements on the system such syncrony, artificial latency, and indefinite continued maintance of the consensus, i.e. a state change is never 100% finalized.
+Nakamoto Consensus has the property of objectivity which is required for nodes wishing to join the consensus trustlessly, and it's achieved using proof of work to give every state a real-world weight. Unfortunately this imposes some non-ideal requirements on the system such synchrony, artificial latency, and indefinite continued maintenance of the consensus, i.e. a state change is never 100% finalized.
 
-By recognizing that the vast majority of nodes making up the mining and large payment infrastructures are always online and very rarely need to join consensus, we can design a protocol that allows them to very quickly come to aggreement on a shared, although subjective, view of the network state. The miners of the network continue their task of solidifying their local states into the canonical global state which enables new nodes to join the consensus trustlessly. This protocol seeks to begin the process of utilizing pre-concensus techniques in order to create a faster, more scalable, and more secure Bitcoin Cash.
+By recognizing that the vast majority of nodes making up the mining and large payment infrastructures are always online and very rarely need to join consensus, we can design a protocol that allows them to very quickly come to agreement on a shared, although subjective, view of the network state. The miners of the network continue their task of solidifying their local states into the canonical global state which enables new nodes to join the consensus trustlessly. This protocol seeks to begin the process of utilizing pre-consensus techniques in order to create a faster, more scalable, and more secure Bitcoin Cash.
 
 # Goals
 
@@ -66,7 +66,7 @@ Additionally, the protocol must have the following properties:
 - Permissionless: Anybody should be able to offer or perform sampling.
 - Low finality latency: On the order of 1 second.
 - Metastability: Participants quickly collapse toward a single decision and resist tipping backwards.
-- Quiescent: once a decision has been reached it is unreversable and no more work needs to be done to maintain the finalized state.
+- Quiescent: once a decision has been reached it is irreversible and no more work needs to be done to maintain the finalized state.
 - Scalable membership set: We want anybody who is interested to join.
 - Scalable resource usage: We need to scale to global cash levels.
 - Byzantine fault tolerant: We can't assume that all participants will be honest and need to tolerate malicious behaviors.
@@ -83,7 +83,7 @@ By replacing any rejected items in the mempool with their accepted counterpart, 
 
 ## Support signaling
 
-The follow serivce bit should be used by clients to signal to that they
+The follow service bit should be used by clients to signal to that they
 understand the protocol:
 
 ```c
@@ -97,13 +97,13 @@ The security parameters, as defined in the Avalanche paper, are set as follows i
 | **Name** |      **Value**      |                            **Description**                             |
 | :------: | :-----------------: | :--------------------------------------------------------------------: |
 |    n     | Variable, maximized |      The number of participants; we want to maximize this number.      |
-|    k     |          8          |              The number of samples to consdier per round.              |
-|   𝛼,β   |       0.75, 6       | The percentage and absolute number of votes needed for a round quorum. |
+|    k     |          8          |              The number of samples to consider per round.              |
+|  𝛼, β   |       0.75, 6       | The percentage and absolute number of votes needed for a round quorum. |
 |    ε     |   2<sup>-32</sub>   |         The probability that a finalized item can be reversed.         |
 
 ## Acceptance Depth
 
-In order to stay in sync with the NC in the long term participants should recognize a particular Acceptance Depth ("AD") which is the number of blocks they're willing to remain behind the NC tip. When seeing a block >= the AD particants should collapse back to the PoW tip. Determining an ideal AD will require further research. A large AD could greatly increase resistance to chain reorganization attacks but means spending more time on the weakly subjective tip in cases of absolute failure.
+In order to stay in sync with the NC in the long term participants should recognize a particular Acceptance Depth ("AD") which is the number of blocks they're willing to remain behind the NC tip. When seeing a block >= the AD participants should collapse back to the PoW tip. Determining an ideal AD will require further research. A large AD could greatly increase resistance to chain reorganization attacks but means spending more time on the weakly subjective tip in cases of absolute failure.
 
 For now Snowglobe recommends using and AD of 0 while the protocol matures.
 
@@ -125,14 +125,14 @@ TODO: finish
 
 These are:
 
-1) The flow of UTXOS, i.e. When transaction B spends a UTXO created by
+1) The flow of UTXOs, i.e. When transaction B spends a UTXO created by
    transaction A then there is a single edge going from A to B.
 2) The chain of blocks, i.e. There is edge going from a blocks' parent to the
    block.
 
-## Sampling Lopp
+## Sampling Loop
 
-Each client should continuously perform a sampling loop for all outstanding items, up to a limit of 4096 per request. Each iteration they should choose a random queriable peer, send them a request for the items, and process the returned votes by sending them through the vote accumulators. In pseudo code this looks like:
+Each client should continuously perform a sampling loop for all outstanding items, up to a limit of 4096 per request. Each iteration they should choose a random queryable peer, send them a request for the items, and process the returned votes by sending them through the vote accumulators. In pseudo code this looks like:
 
 ```pseudo
 while unfinalizedCount > 0:
@@ -148,7 +148,7 @@ Votes may be one of 3 values: no (0), yes (1), or abstain (2). They are processe
 
 ## Post-finalization Mempool Update
 
-When an item is finalized as accepted all conflicting items are automatically, implicitly, finalized as rejected. Nodes must ensure of their mempools the absense of any rejected items and presense of any accepted items as they finalize in order to mimic the other participants that have finalized those items.
+When an item is finalized as accepted all conflicting items are automatically, implicitly, finalized as rejected. Nodes must ensure of their mempools the absence of any rejected items and presence of any accepted items as they finalize in order to mimic the other participants that have finalized those items.
 
 ## New p2p messages
 
@@ -187,7 +187,7 @@ When a peer receives a query it should respond with a message built as follows:
 
 When a client first starts up it should refresh its pool of nodes available for sampling. It can do this with a combination of checking nodes they know with the appropriate service bit set, a domain-specific DNS seed, and other standard techniques for finding peers on a p2p network.
 
-Next a client must sync to the tip block; the one with the most proof of work visible to the client. From here the client should begin iteratively checking blocks backwards, from tip to Genesis, until it finds a block that has been accepted by the client's queriable peers. They now know that block, all of its ancestors, and every transaction contained within those blocks have been finalized as accepted by the network. From this point the node only needs to consider new items.
+Next a client must sync to the tip block; the one with the most proof of work visible to the client. From here the client should begin iteratively checking blocks backwards, from tip to Genesis, until it finds a block that has been accepted by the client's queryable peers. They now know that block, all of its ancestors, and every transaction contained within those blocks have been finalized as accepted by the network. From this point the node only needs to consider new items.
 
 This is a best case and average case of 1 Snowball execution, and worst case of AD executions.
 
@@ -195,7 +195,7 @@ This is a best case and average case of 1 Snowball execution, and worst case of 
 
 The following items are things that would improve the protocol but have been omitted for now to keep the protocol simple.
 
-## Deduplicated UTXO signatures
+## Deduplicate UTXO signatures
 
 Currently ever UTXO in a Join message must have a matching signature, however each signature covers the same data and many UTXOs may be controlled by a single pubkey. In this case it would be acceptable to have only one signature for all of these UTXOs.
 
@@ -226,7 +226,7 @@ Bitcoin ABC's WIP implementation that this protocol was largely developed around
 
 # Acknowledgments
 
-Thanks to [Amaury Séchet (deadalnix)](https://keybase.io/deadalnix) for the base idea of pre-concensus and using Avalanche to implement it, as well as the intial vote accumulator logic and code.
+Thanks to [Amaury Séchet (deadalnix)](https://keybase.io/deadalnix) for the base idea of pre-consensus and using Avalanche to implement it, as well as the initial vote accumulator logic and code.
 
 Thanks to [Chris Pacia (cpacia)](https://keybase.io/chrispacia) for wiring the initial Avalanche code into bchd as a base for pre-consensus.
 
