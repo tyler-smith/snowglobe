@@ -15,9 +15,13 @@
 - [Protocol Overview](#protocol-overview)
 - [Specification](#specification)
   - [Support signaling](#support-signaling)
+  - [Handshake](#handshake)
+  - [Sybil resistance via coin age](#sybil-resistance-via-coin-age)
+  - [Identity and Stake Signing and Validation](#identity-and-stake-signing-and-validation)
+    - [Creating](#creating)
+    - [Validating](#validating)
   - [Security Parameters](#security-parameters)
   - [Acceptance Depth](#acceptance-depth)
-  - [Sybil resistance via coin age](#sybil-resistance-via-coin-age)
   - [DAG and conflict-set Formation](#dag-and-conflict-set-formation)
   - [Sampling Loop](#sampling-loop)
   - [Vote Accumulation](#vote-accumulation)
@@ -26,14 +30,14 @@
     - [Join](#join)
     - [Query](#query)
     - [QueryResponse](#queryresponse)
-  - [Joining Full Consensus](#joining-full-consensus)
+  - [Joining Consensus](#joining-consensus)
 - [Future Improvements](#future-improvements)
   - [Deduplicate UTXO signatures](#deduplicate-utxo-signatures)
   - [Short IDs](#short-ids)
   - [Short Votes](#short-votes)
   - [Noise authenticated tunnel](#noise-authenticated-tunnel)
 - [Implementations](#implementations)
-- [Acknowledgments](#acknowledgments)
+- [Acknowledgements](#acknowledgements)
 - [References](#references)
 - [Copyright](#copyright)
 <!-- END AUTO TOC -->
@@ -42,13 +46,13 @@
 
 This document specifies a propagation protocol for nodes of a Nakamoto Consensus network in which participants actively work to reconcile their local states against each other. It enables nodes to sample each others' state in order to determine which item of a conflict set is currently chosen by the most nodes, and to work toward a super majority of nodes choosing the same set of items. An Avalanche-based consensus algorithm is used for this process affording the protocol asynchrony, metastability, and quiescent finality.
 
-This document will not go into the details of the Avalanche algorithms and knowledge of them is assumed of the reader.
+This document will not go into the details of the Avalanche algorithms described in the white paper<sup>[[1]](#References)</sup> and knowledge of them is required of the reader. In depth understand of Nakamoto Concensus<sup>[[2]](#References)</sup> is also required.
 
 # Motivation
 
-The benefits of reducing inter-node entropy on the Bitcoin Cash network has been widely discussed, some of which include increased propagation performance([[1]](#References), faster transaction finality/double spend protection[[2]](#References), and stronger Byzantine resistance against chain short to medium term reorganization attacks[[3]](#References).
+The benefits of reducing inter-node entropy on the Bitcoin Cash network have been widely discussed, some of which include increased scalability by moving expensive work out of the critical path<sup>[[3]](#References)</sup>, faster transaction finality/double spend protection sup>[[4]](#References)</sup>, and stronger Byzantine resistance against chain short to medium term reorganization attacks<sup>[[5]](#References)<sup>.
 
-Nakamoto Consensus has the property of objectivity which is required for nodes wishing to join the consensus trustlessly, and it's achieved using proof of work to give every state a real-world weight. Unfortunately this imposes some non-ideal requirements on the system such synchrony, artificial latency, and indefinite continued maintenance of the consensus, i.e. a state change is never 100% finalized.
+Nakamoto Consensus (NC) has the property of objectivity which is required for nodes wishing to join the consensus trustlessly, and it's achieved using proof of work to give every state a real-world weight. Unfortunately this imposes some non-ideal requirements on the system such synchrony, artificial latency, and indefinite continued maintenance of the consensus, i.e. a state change is never 100% finalized.
 
 By recognizing that the vast majority of nodes making up the mining and large payment infrastructures are always online and very rarely need to join consensus, we can design a protocol that allows them to very quickly come to agreement on a shared, although subjective, view of the network state. The miners of the network continue their task of solidifying their local states into the canonical global state which enables new nodes to join the consensus trustlessly. This protocol seeks to begin the process of utilizing pre-consensus techniques in order to create a faster, more scalable, and more secure Bitcoin Cash.
 
@@ -62,14 +66,13 @@ We will outline some goals for our protocol:
 
 Additionally, the protocol must have the following properties:
 
-
-- Permissionless: Anybody should be able to offer or perform sampling.
-- Low finality latency: On the order of 1 second.
-- Metastability: Participants quickly collapse toward a single decision and resist tipping backwards.
-- Quiescent: once a decision has been reached it is irreversible and no more work needs to be done to maintain the finalized state.
-- Scalable membership set: We want anybody who is interested to join.
-- Scalable resource usage: We need to scale to global cash levels.
-- Byzantine fault tolerant: We can't assume that all participants will be honest and need to tolerate malicious behaviors.
+- **Permissionlessness:** Anybody should be able to offer or perform sampling.
+- **Low latency:** Decisions finalized on the order of seconds.
+- **Metastability:** Participants actively work to collapse toward a single decision and resist tipping backwards.
+- **Quiescence:** Once a decision has been reached it is irreversible and no more work needs to be done to maintain that finalized state.
+- **Scalable Membership:** We want anybody who is interested to be able to join.
+- **Scalable Resource Usage:** We need to scale to global cash levels.
+- **Byzantine fault tolerance:** We can't assume that all participants will be honest and need to tolerate malicious behaviors.
 
 # Protocol Overview
 
@@ -90,6 +93,39 @@ understand the protocol:
 NODE_SNOWGLOBE = (1 << 26)
 ```
 
+## Handshake
+
+When nodes wishing to offer up their state for sampling they should send a Join message to peers with the appropriate service bit set upon connection. Protocol clients that receive a Join message should validate it and either:
+
+1) Ban the peer if the Join message is invalid
+2) Add the peer to their participant pool if the Join message is valid
+
+## Sybil resistance via coin age
+
+Sybil resistance is provided by requiring peers offering the Query service to commit to a set of UTXOs that have a sufficient coin amount times block age, which we denote with the unit "Coin Blocks". If a Join message received by a Query peer does not meet the sufficient Coin Blocks threshold, or the message is invalid, that peer must not be added to the Snowglobe Pool and should be banned.
+
+The initial temporary amount required is 1440 Coin Blocks but further research is required to choose an appropriate value.
+
+## Identity and Stake Signing and Validation
+
+### Creating
+
+Queryable nodes must all maintain an secp256k1 key pair which is used by queriers to authenticate messages against a stake. Staking is done by crafting and signing a [Join message](#Join) containing the Identity public key a list of outpoints controlled by the staker. This message is signed using ECDSA by the Identity private key and by the public key that controls each UTXO represented by the committed outpoint.
+
+Only the following UTXO scriptPubkey types are supported:
+
+- Pay-to-Pubkey
+- Pay-to-PubkeyHash
+
+In the future the following types could potentially be supported:
+
+- Multisig
+- P2SH for well-defined Script pre-images
+
+### Validating
+
+To validate a Join message and its stake a client must first generate the canonical serialized message by removing the signatures. Then it should check that the Identity signature correctly signs the canonical message. Next it needs to verify each outpoint signature against its matching committed outpoint, while simultaneously extracting the public key. Finally it load each of the committed UTXOs, check their type, check that the matching public key is correct, and ensure that Coin Blocks is sufficient.
+
 ## Security Parameters
 
 The security parameters, as defined in the Avalanche paper, are set as follows in our protocol:
@@ -107,44 +143,29 @@ In order to stay in sync with the NC in the long term participants should recogn
 
 For now Snowglobe recommends using and AD of 0 while the protocol matures.
 
-## Sybil resistance via coin age
-
-Sybil resistance is provided by requiring peers offering the Query service to commit to a set of UTXOs that have a sufficient coin amount times block age, which we denote with the unit "Coin Blocks", or CB. If a Join message received by a Query peer does not meet the sufficient Coin Blocks threshold that peer must not be added to the Snowglobe Pool and should be banned.
-
-The initial temporary amount required is 1440 Coin Blocks.
-
 ## DAG and conflict-set Formation
 
 The heart of Avalanche's efficiency is in the DAG that allows us to accept or reject entire chains of states with a single Snowball instance. The more connected the graph is the fewer Snowball instances need to be performed to finalize all states, however if forming the graph is too complex much or all of these gains will be used up constructing graph edges.
 
-The solution is to use all naturally forming, objective edges already present in the chain already and no more. We define the edges of the graph recursively by defining the incoming edges for a given vertex. The edges for a vertex depends on its type and are as follows:
+The solution is to use all naturally-forming objective edges present in the chain already and no artificially generated edges. We define the edges of the graph recursively by defining the incoming edges for a given vertex, depending on its type as follows:
 
-TODO: finish
-
-- **Transactions:** A transaction has incoming edges from each parent transaction.
-
-These are:
-
-1) The flow of UTXOs, i.e. When transaction B spends a UTXO created by
-   transaction A then there is a single edge going from A to B.
-2) The chain of blocks, i.e. There is edge going from a blocks' parent to the
-   block.
+- A transaction has incoming edges from each parent transaction.
+- A block has an incoming edge from its parent block and has an incoming edge from each transaction committed to by the block.
 
 ## Sampling Loop
 
 Each client should continuously perform a sampling loop for all outstanding items, up to a limit of 4096 per request. Each iteration they should choose a random queryable peer, send them a request for the items, and process the returned votes by sending them through the vote accumulators. In pseudo code this looks like:
 
 ```pseudo
-while unfinalizedCount > 0:
+while items = getItemsToSample():
   peer = getRandomPeer()
-  items = getItemsToSample()
   votes = query(peer, items)
   accumulateVotes(votes)
 ```
 
 ## Vote Accumulation
 
-Votes may be one of 3 values: no (0), yes (1), or abstain (2). They are processed by putting them into a Snowball vote accumulator that maintains the last k votes, acceptance state, and the confidence in that state as described by the Avalanche paper. The parameters chosen are k = 8 and 𝛼 = 0.75 (6). Votes are tallied on a rolling basis every vote until the confidence hits 128 at which point the item is finalized in its current state and no more votes shall be processed.
+Votes may be one of 3 values: no (0), yes (1), or abstain (2). They are processed by putting them into a Snowball vote accumulator that maintains the last k votes, acceptance state, and the confidence in that state as described by the Avalanche paper. The parameters chosen are k = 8 and 𝛼 = 0.75/β = 6. Votes are tallied on a rolling basis every vote until the confidence hits 128 at which point the item is finalized in its current state and no more votes shall be processed for this accumulator.
 
 ## Post-finalization Mempool Update
 
@@ -183,7 +204,7 @@ When a peer receives a query it should respond with a message built as follows:
 |    8     | queryID  |  uint64  | The queryID send in the request this message is responding to. |
 |   []1    |  votes   | []uint8  |               A list of votes, 1 byte per vote.                |
 
-## Joining Full Consensus
+## Joining Consensus
 
 When a client first starts up it should refresh its pool of nodes available for sampling. It can do this with a combination of checking nodes they know with the appropriate service bit set, a domain-specific DNS seed, and other standard techniques for finding peers on a p2p network.
 
@@ -216,7 +237,7 @@ The latter is more complex than the former but it has the potential to be more o
 
 The current protocol requires signing every query response to validate its authenticity which is likely to become a bottleneck at scale. We can improve this situation by having peers connect using an authenticated communication tunnel.
 
-Using a protocol conforming to the Noise<sup>[[5]](#References)</sup> framework using QUIC for transport is under development by Bitcoin ABC.
+Using a protocol conforming to the Noise<sup>[[56](#References)</sup> framework using QUIC for transport is under development by Bitcoin ABC.
 
 # Implementations
 
@@ -224,23 +245,27 @@ There is a WIP implementation in Go based on the bchd full node: <https://github
 
 Bitcoin ABC's WIP implementation that this protocol was largely developed around is available here: <https://reviews.bitcoinabc.org/source/bitcoin-abc>
 
-# Acknowledgments
+# Acknowledgements
 
-Thanks to [Amaury Séchet (deadalnix)](https://keybase.io/deadalnix) for the base idea of pre-consensus and using Avalanche to implement it, as well as the initial vote accumulator logic and code.
+Thank you to the following people for helping make this protocol possible:
 
-Thanks to [Chris Pacia (cpacia)](https://keybase.io/chrispacia) for wiring the initial Avalanche code into bchd as a base for pre-consensus.
+- [Amaury Séchet (deadalnix)](https://keybase.io/deadalnix) for the base idea of pre-consensus and using Avalanche to implement it, as well as the initial vote accumulator logic and code.
 
-Thanks to [Emin Gün Sirer](https://keybase.io/egs) and [Colin Cusce](https://twitter.com/collincusce) for helping me understand various aspects of the Avalanche family of algorithms.
+- [Chris Pacia (cpacia)](https://keybase.io/chrispacia) for wiring the initial Avalanche code into bchd as a base for pre-consensus.
+
+- Amaury Sechet, Chris Pacia, and [Antony Zegers (Mengerian)](https://twitter.com/antonyzegers) for important articles on the subject.
+
+- [Emin Gün Sirer](https://keybase.io/egs) and [Colin Cusce](https://twitter.com/collincusce) for helping me understand various aspects of the Avalanche family of algorithms.
 
 # References
 
 1. ["Snowflake to Avalanche"](https://ipfs.io/ipfs/QmUy4jh5mGNZvLkjies1RWM4YuvJh5o2FYopNPVYwrRVGV) by Team Rocket
-2. ["On markets and pre-consensus"](https://www.yours.org/content/on-markets-and-pre-consensus-4454add1bfbe) by [Amaury Séchet (deadalnix)](https://keybase.io/deadalnix) ([Archive](http://archive.is/Zl5hu))
-3. ["Avalanche Post-Consensus: Making Bitcoin Cash Indestructible"](https://www.yours.org/content/on-markets-and-pre-consensus-4454add1bfbe) by [Antony Zegers (Mengerian)](https://twitter.com/antonyzegers) ([Archive](http://archive.is/jYPkm))
-4. ["The Problems Solved By Avalanche"](https://medium.com/@chrispacia/the-problems-solved-by-avalanche-5575a1b0d7bc) by [Chris Pacia (cpacia)](https://keybase.io/chrispacia) ([Archive](http://archive.is/3ZlKC))
-5. [Noise Protocol](http://www.noiseprotocol.org/)
-
-Embrace the DAG: http://archive.is/S5LiB, https://www.youtube.com/watch?v=9PygO-B1o6w
+2. ["Bitcoin: A Peer-to-Peer Electronic Cash System"](https://bitcoin.org/bitcoin.pdf) by Satoshi Nakamoto
+3. ["Embrace the DAG"](https://www.youtube.com/watch?v=9PygO-B1o6w) by [Amaury Séchet (deadalnix)](https://keybase.io/deadalnix) ([Archive](http://archive.is/S5LiB,))
+4. ["On markets and pre-consensus"](https://www.yours.org/content/on-markets-and-pre-consensus-4454add1bfbe) by Amaury Séchet ([Archive](http://archive.is/Zl5hu))
+5. ["The Problems Solved By Avalanche"](https://medium.com/@chrispacia/the-problems-solved-by-avalanche-5575a1b0d7bc) by [Chris Pacia (cpacia)](https://keybase.io/chrispacia) ([Archive](http://archive.is/3ZlKC))
+6. ["Avalanche Post-Consensus: Making Bitcoin Cash Indestructible"](https://www.yours.org/content/on-markets-and-pre-consensus-4454add1bfbe) by [Antony Zegers (Mengerian)](https://twitter.com/antonyzegers) ([Archive](http://archive.is/jYPkm))
+7. [Noise Protocol](http://www.noiseprotocol.org/)
 
 # Copyright
 
