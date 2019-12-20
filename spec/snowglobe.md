@@ -24,12 +24,12 @@
   - [Conflict Sets](#conflict-sets)
   - [Sampling Loop](#sampling-loop)
   - [Vote Accumulation](#vote-accumulation)
+  - [Joining Consensus](#joining-consensus)
   - [Post-finalization Mempool Update](#post-finalization-mempool-update)
   - [New p2p messages](#new-p2p-messages)
     - [Join](#join)
     - [Query](#query)
     - [QueryResponse](#queryresponse)
-  - [Joining Consensus](#joining-consensus)
 - [Future Improvements](#future-improvements)
   - [Deduplicate UTXO signatures](#deduplicate-utxo-signatures)
   - [Short IDs](#short-ids)
@@ -176,6 +176,14 @@ while items = getItemsToSample():
 
 Votes may be one of 3 values: no (0), yes (1), or abstain (2). They are processed by putting them into a Snowball vote accumulator that maintains the last k votes, acceptance state, and the confidence in that state as described by the Avalanche paper. The parameters chosen are k = 8 and 𝛼 = 0.75/β = 6. Votes are tallied on a rolling basis every vote until the confidence hits 128 at which point the item is finalized in its current state and no more votes shall be processed for this accumulator.
 
+## Joining Consensus
+
+When a client first starts up it should refresh its pool of nodes available for sampling. It can do this with a combination of checking nodes they know with the appropriate service bit set, a domain-specific DNS seed, and other standard techniques for finding peers on a p2p network.
+
+Next a client must sync to the tip block; the one with the most proof of work visible to the client. From here the client should begin iteratively checking blocks backwards, from tip to Genesis, until it finds a block that has been accepted by the client's queryable peers. They now know that block, all of its ancestors, and every transaction contained within those blocks have been finalized as accepted by the network. From this point the node only needs to consider new items.
+
+This is a best case and average case of 1 Snowball execution, and worst case of AD executions.
+
 ## Post-finalization Mempool Update
 
 When an item is finalized as accepted all conflicting items are automatically, implicitly, finalized as rejected. Nodes must ensure of their mempools the absence of any rejected items and presence of any accepted items as they finalize in order to mimic the other participants that have finalized those items.
@@ -212,14 +220,6 @@ When a peer receives a query it should respond with a message built as follows:
 | :------: | :------: | :------: | :------------------------------------------------------------: |
 |    8     | queryID  |  uint64  | The queryID send in the request this message is responding to. |
 |   []1    |  votes   | []uint8  |               A list of votes, 1 byte per vote.                |
-
-## Joining Consensus
-
-When a client first starts up it should refresh its pool of nodes available for sampling. It can do this with a combination of checking nodes they know with the appropriate service bit set, a domain-specific DNS seed, and other standard techniques for finding peers on a p2p network.
-
-Next a client must sync to the tip block; the one with the most proof of work visible to the client. From here the client should begin iteratively checking blocks backwards, from tip to Genesis, until it finds a block that has been accepted by the client's queryable peers. They now know that block, all of its ancestors, and every transaction contained within those blocks have been finalized as accepted by the network. From this point the node only needs to consider new items.
-
-This is a best case and average case of 1 Snowball execution, and worst case of AD executions.
 
 # Future Improvements
 
