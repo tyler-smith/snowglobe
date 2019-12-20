@@ -44,13 +44,13 @@
 
 # Abstract
 
-This document specifies a propagation protocol for nodes of a Nakamoto Consensus network in which participants actively work to reconcile their local states against each other. It enables nodes to sample each others' state in order to determine which item of a conflict set is currently chosen by the most nodes, and to work toward a super majority of nodes choosing the same set of items. An Avalanche-based consensus algorithm is used for this process affording the protocol asynchrony, metastability, and quiescent finality.
+This document specifies a propagation protocol for nodes of a Nakamoto Consensus network in which participants actively work to reconcile their local states against each other. It enables nodes to sample each others' state in order to determine which item in a conflict set is currently chosen by the most nodes, and to work toward a super majority of nodes choosing the same set of items. An Avalanche-based consensus algorithm is used for this process affording the protocol asynchrony, metastability, and quiescent finality.
 
 This document will not go into the details of the Avalanche algorithms described in the white paper<sup>[[1]](#References)</sup> and knowledge of them is required of the reader. In depth understand of Nakamoto Concensus<sup>[[2]](#References)</sup> is also required.
 
 # Motivation
 
-The benefits of reducing inter-node entropy on the Bitcoin Cash network have been widely discussed, some of which include increased scalability by moving expensive work out of the critical path<sup>[[3]](#References)</sup>, faster transaction finality/double spend protection sup>[[4]](#References)</sup>, and stronger Byzantine resistance against chain short to medium term reorganization attacks<sup>[[5]](#References)<sup>.
+The benefits of reducing inter-node entropy on the Bitcoin Cash network have been widely discussed, some of which include increased scalability by moving expensive work out of the critical path<sup>[[3]](#References)</sup>, faster transaction finality/double spend protection <sup>[[4]](#References)</sup>, and stronger Byzantine resistance against short to medium term chain reorganization attacks<sup>[[5]](#References)<sup>.
 
 Nakamoto Consensus (NC) has the property of objectivity which is required for nodes wishing to join the consensus trustlessly, and it's achieved using proof of work to give every state a real-world weight. Unfortunately this imposes some non-ideal requirements on the system such synchrony, artificial latency, and indefinite continued maintenance of the consensus, i.e. a state change is never 100% finalized.
 
