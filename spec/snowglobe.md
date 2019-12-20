@@ -1,7 +1,5 @@
 <pre>
-  NOTE: This document is an unfinished work in progress, working toward v0.1.0!
-
-  Title: Active local state reconciliation using Avalanche
+  Title: Active local-state reconciliation using Avalanche
   Author: Tyler Smith (tcrypt) <tylersmith.me@gmail.com>
   Status: Draft
   Created: 2019-10-01
