@@ -36,6 +36,7 @@
   - [Short IDs](#short-ids)
   - [Short Votes](#short-votes)
   - [Noise authenticated tunnel](#noise-authenticated-tunnel)
+  - [Increasing Acceptance Depth](#increasing-acceptance-depth)
 - [Implementations](#implementations)
 - [Acknowledgements](#acknowledgements)
 - [References](#references)
@@ -237,7 +238,11 @@ The latter is more complex than the former but it has the potential to be more o
 
 The current protocol requires signing every query response to validate its authenticity which is likely to become a bottleneck at scale. We can improve this situation by having peers connect using an authenticated communication tunnel.
 
-Using a protocol conforming to the Noise<sup>[[56](#References)</sup> framework using QUIC for transport is under development by Bitcoin ABC.
+Using a protocol conforming to the Noise<sup>[[6](#References)</sup> framework using QUIC for transport is under development by Bitcoin ABC.
+
+## Increasing Acceptance Depth
+
+The most obvious increase in usefulness would come from increasing the Acceptance Depth used by nodes. If a majority of miners use a large AD the network could be more resistant to reorganization attacks but the viability and security of doing this needs further research.
 
 # Implementations
 
