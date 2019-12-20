@@ -12,9 +12,9 @@
 - [Goals](#goals)
 - [Protocol Overview](#protocol-overview)
 - [Specification](#specification)
-  - [Support signaling](#support-signaling)
+  - [Support Signaling](#support-signaling)
   - [Handshake](#handshake)
-  - [Sybil resistance via coin age](#sybil-resistance-via-coin-age)
+  - [Sybil Resistance via Coin Age](#sybil-resistance-via-coin-age)
   - [Identity and Stake Signing and Validation](#identity-and-stake-signing-and-validation)
     - [Creating](#creating)
     - [Validating](#validating)
@@ -26,15 +26,15 @@
   - [Vote Accumulation](#vote-accumulation)
   - [Joining Consensus](#joining-consensus)
   - [Post-finalization Mempool Update](#post-finalization-mempool-update)
-  - [New p2p messages](#new-p2p-messages)
+  - [New p2p Messages](#new-p2p-messages)
     - [Join](#join)
     - [Query](#query)
     - [QueryResponse](#queryresponse)
 - [Future Improvements](#future-improvements)
   - [Short IDs](#short-ids)
   - [Short Votes](#short-votes)
-  - [Deduplicate UTXO signatures in Join messages](#deduplicate-utxo-signatures-in-join-messages)
-  - [Noise authenticated tunnel](#noise-authenticated-tunnel)
+  - [Deduplicate UTXO Signatures in Join Messages](#deduplicate-utxo-signatures-in-join-messages)
+  - [Noise Authenticated Tunnel](#noise-authenticated-tunnel)
   - [Increasing Acceptance Depth](#increasing-acceptance-depth)
 - [Implementations](#implementations)
 - [Acknowledgements](#acknowledgements)
@@ -84,7 +84,7 @@ By replacing any rejected items in the mempool with their accepted counterpart, 
 
 # Specification
 
-## Support signaling
+## Support Signaling
 
 The follow service bit should be used by clients to signal to that they
 understand the protocol:
@@ -100,7 +100,7 @@ When nodes wishing to offer up their state for sampling they should send a Join 
 1) Ban the peer if the Join message is invalid
 2) Add the peer to their participant pool if the Join message is valid
 
-## Sybil resistance via coin age
+## Sybil Resistance via Coin Age
 
 Sybil resistance is provided by requiring peers offering the Query service to commit to a set of UTXOs that have a sufficient coin amount times block age, which we denote with the unit "Coin Blocks". If a Join message received by a Query peer does not meet the sufficient Coin Blocks threshold, or the message is invalid, that peer must not be added to the Snowglobe Pool and should be banned.
 
@@ -188,7 +188,7 @@ This is a best case and average case of 1 Snowball execution, and worst case of 
 
 When an item is finalized as accepted all conflicting items are automatically, implicitly, finalized as rejected. Nodes must ensure of their mempools the absence of any rejected items and presence of any accepted items as they finalize in order to mimic the other participants that have finalized those items.
 
-## New p2p messages
+## New p2p Messages
 
 ### Join
 
@@ -238,11 +238,11 @@ Currently votes in a query response are an entire byte each even though they're 
 
 The latter is more complex than the former but it has the potential to be more optimal on average assuming a low ratio of no votes to yes and abstain votes.
 
-## Deduplicate UTXO signatures in Join messages
+## Deduplicate UTXO Signatures in Join Messages
 
 Currently ever UTXO in a Join message must have a matching signature, however each signature covers the same data and many UTXOs may be controlled by a single pubkey. In this case it would be acceptable to have only one signature for all of these UTXOs.
 
-## Noise authenticated tunnel
+## Noise Authenticated Tunnel
 
 The current protocol requires signing every query response to validate its authenticity which is likely to become a bottleneck at scale. We can improve this situation by having peers connect using an authenticated communication tunnel.
 
