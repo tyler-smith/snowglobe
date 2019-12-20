@@ -1,7 +1,21 @@
-https://grpc.snowglobe.cash {
-  proxy / https://snowglobe1:8335 {
-    insecure_skip_verify
-  }
-  log /var/log/grpc.snowglobe.cash.log
+grpc.snowglobe.cash {
+    cors / {
+        allowed_headers *
+    }
+    log /var/log/caddy/grpc.snowglobe.cash.log
+    timeouts none
+    grpc snowglobe1:8335 {
+        backend_tls_noverify
+    }
 }
 
+grpc2.snowglobe.cash {
+    cors / {
+        allowed_headers *
+    }
+    log /var/log/caddy/grpc2.snowglobe.cash.log
+    timeouts none
+    grpc snowglobe2:8335 {
+        backend_tls_noverify
+    }
+}

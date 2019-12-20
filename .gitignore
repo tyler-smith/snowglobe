@@ -1,5 +1,8 @@
 .DS_Store
 
+# Secrets
+infra/rpc.key
+
 # Dependencies and dev tools
 node_modules
 .ackrc
