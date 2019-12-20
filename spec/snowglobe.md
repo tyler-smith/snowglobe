@@ -20,7 +20,8 @@
     - [Validating](#validating)
   - [Security Parameters](#security-parameters)
   - [Acceptance Depth](#acceptance-depth)
-  - [DAG and conflict-set Formation](#dag-and-conflict-set-formation)
+  - [DAG Formation](#dag-formation)
+  - [Conflict Sets](#conflict-sets)
   - [Sampling Loop](#sampling-loop)
   - [Vote Accumulation](#vote-accumulation)
   - [Post-finalization Mempool Update](#post-finalization-mempool-update)
@@ -142,7 +143,7 @@ In order to stay in sync with the NC in the long term participants should recogn
 
 For now Snowglobe recommends using and AD of 0 while the protocol matures.
 
-## DAG and conflict-set Formation
+## DAG Formation
 
 The heart of Avalanche's efficiency is in the DAG that allows us to accept or reject entire chains of states with a single Snowball instance. The more connected the graph is the fewer Snowball instances need to be performed to finalize all states, however if forming the graph is too complex much or all of these gains will be used up constructing graph edges.
 
@@ -150,6 +151,15 @@ The solution is to use all naturally-forming objective edges present in the chai
 
 - A transaction has incoming edges from each parent transaction.
 - A block has an incoming edge from its parent block and has an incoming edge from each transaction committed to by the block.
+
+## Conflict Sets
+
+Every transaction in block exists in a conflict set based on points of mutex exclusion. These points are as follows:
+
+- A transaction's conflict set is the set of all other transactions spending the same UTXOs.
+- A block's conflict set is the set of all other blocks at the same height, committing to the same transactions, or committing to conflicting transactions.
+
+Resolving a conflict set is the process of finalizing acceptance of 1 item, implicitly rejecting all the others.
 
 ## Sampling Loop
 
