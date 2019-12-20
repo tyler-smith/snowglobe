@@ -23,9 +23,20 @@
         <div class="column is-half">
           <section class="section">
             <div class="container">
-              <img src="images/bch-dark.png" id="bch-logo" class="logo" />
-              <p class="plus-sign">+</p>
-              <img src="images/avalanche.png" id="avalanche-logo" class="logo" />
+              <img
+                id="bch-logo"
+                src="images/bch-dark.png"
+                class="logo"
+              >
+
+              <p class="plus-sign">
+                +
+              </p>
+              <img
+                id="avalanche-logo"
+                src="images/avalanche.png"
+                class="logo"
+              >
             </div>
           </section>
         </div>
@@ -36,10 +47,16 @@
             <div class="container">
               <div class="card">
                 <header class="card-header">
-                  <p class="card-header-title">Peers Online</p>
+                  <p class="card-header-title">
+                    Peers Online
+                  </p>
                 </header>
                 <div class="card-content">
-                  <div class="content">23</div>
+                  <div
+                    class="content"
+                  >
+                    {{ avalancheInfo.getCurrentPeerCount() }}/{{ avalancheInfo.getSeenPeerCount() }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -50,10 +67,18 @@
             <div class="container">
               <div class="card">
                 <header class="card-header">
-                  <p class="card-header-title">Finalization Rate</p>
+                  <p
+                    class="card-header-title"
+                  >
+                    Finalized Blocks
+                  </p>
                 </header>
                 <div class="card-content">
-                  <div class="content">{{ mempoolSize }} mempool count</div>
+                  <div
+                    class="content"
+                  >
+                    {{ avalancheInfo.getFinalizedAcceptedBlockCount() }} + {{ avalancheInfo.getFinalizedRejectedBlockCount() }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -64,10 +89,18 @@
             <div class="container">
               <div class="card">
                 <header class="card-header">
-                  <p class="card-header-title">Finalization Rate</p>
+                  <p
+                    class="card-header-title"
+                  >
+                    Finalized Transactions
+                  </p>
                 </header>
                 <div class="card-content">
-                  <div class="content">{{ mempoolBytes }} mempool bytes</div>
+                  <div
+                    class="content"
+                  >
+                    {{ avalancheInfo.getFinalizedAcceptedTransactionCount() }} + {{ avalancheInfo.getFinalizedRejectedTransactionCount() }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -80,15 +113,25 @@
             <div class="container">
               <div class="card">
                 <header class="card-header">
-                  <p class="card-header-title">Peers</p>
+                  <p
+                    class="card-header-title"
+                  >
+                    Peers
+                  </p>
                 </header>
                 <div class="card-content">
                   <div class="content">
-                    <ul id="peerList ">
-                      <li>AABBCCDD</li>
-                      <li>AABBCCDD</li>
-                      <li>AABBCCDD</li>
-                      <li>AABBCCDD</li>
+                    <ul id="peerList">
+                      <li v-for="(peer, index) in peers" v-bind:key="index">
+                        <p
+                          class="code"
+                        >
+                          {{ peer.publicKey }}
+                        </p>
+                      </li>
+<!--                      <li>AABBCCDD</li>-->
+<!--                      <li>AABBCCDD</li>-->
+<!--                      <li>AABBCCDD</li>-->
                     </ul>
                   </div>
                 </div>
@@ -108,7 +151,11 @@
         <div class="container">
           <div class="card">
             <header class="card-header">
-              <p class="card-header-title">Recent Blocks</p>
+              <p
+                class="card-header-title"
+              >
+                Recent Blocks
+              </p>
             </header>
             <div class="card-content">
               <div class="content">
@@ -126,7 +173,11 @@
         <div class="container">
           <div class="card">
             <header class="card-header">
-              <p class="card-header-title">Recent Transactions</p>
+              <p
+                class="card-header-title"
+              >
+                Recent Transactions
+              </p>
             </header>
             <div class="card-content">
               <div class="content">
@@ -151,18 +202,16 @@
 </template>
 
 <script>
-import { GrpcClient } from "grpc-bchrpc-web";
-
 export default {
   computed: {
     blocks() {
       return this.$store.state.blocks;
     },
-    mempoolSize() {
-      return this.$store.state.mempoolSize;
+    avalancheInfo() {
+      return this.$store.getters.avalancheInfo;
     },
-    mempoolBytes() {
-      return this.$store.state.mempoolBytes;
+    peers() {
+      return this.$store.getters.peers;
     }
   },
 
@@ -170,44 +219,6 @@ export default {
     getBlockURLFromHash: hash => {
       return "https://explorer.bitcoin.com/bch/block/" + hash;
     }
-  },
-
-  created() {
-    const grpc = new GrpcClient({ url: "https://grpc.snowglobe.cash" });
-    const $this = this;
-    var res = grpc.getMempoolInfo();
-    res
-      .catch(function() {
-        // console.log("Rejection", arguments);
-      })
-      .then(function(data) {
-        console.log("getMempoolInfo data:");
-        $this.$store.commit("setMempoolInfo", data);
-        // console.log("Success: " + data.toString());
-      });
-
-    console.log(grpc.getAvalancheInfo);
-    res = grpc.getAvalancheInfo();
-    res
-      .catch(function() {
-        // console.log("Rejection", arguments);
-      })
-      .then(function(data) {
-        console.log("getAvalancheInfo data:");
-        console.log(data);
-        console.log(data.getCurrentPeerCount());
-        console.log(data.getSeenPeerCount());
-
-        console.log(data.getPendingBlockCount());
-        console.log(data.getFinalizedAcceptedBlockCount());
-        console.log(data.getFinalizedRejectedBlockCount());
-
-        console.log(data.getPendingTransactionCount());
-        console.log(data.getFinalizedAcceptedTransactionCount());
-        console.log(data.getFinalizedRejectedTransactionCount());
-        $this.$store.commit("setAvalancheInfo", data);
-        // console.log("Success: " + data.toString());
-      });
   }
 };
 </script>

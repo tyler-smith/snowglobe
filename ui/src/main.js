@@ -1,17 +1,14 @@
-/*jshint esversion: 6 */
-
+/* eslint-disable */
 import Vue from 'vue';
 import App from './App.vue';
-import { store } from './store/store';
+import { store } from './store';
+import { sync } from './sync';
 
-Vue.config.productionTip = false;
-
-// Create grpc client object
-// Get mempool info from grpc client
-// this.store.commit("setMempoolInfo");
+// TODO: Create an object that syncs data from the grpc server into the state.
+sync(store);
 
 new Vue({
-    el: "#app",
-    store: store,
-    render: h => h(App)
+  el: '#app',
+  store: store,
+  render: h => h(App)
 });
