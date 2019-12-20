@@ -12,20 +12,20 @@
 - [Goals](#goals)
 - [Protocol Overview](#protocol-overview)
 - [Specification](#specification)
+  - [Security Parameters](#security-parameters)
   - [Support Signaling](#support-signaling)
   - [Handshake](#handshake)
   - [Sybil Resistance via Coin Age](#sybil-resistance-via-coin-age)
   - [Identity and Stake Signing and Validation](#identity-and-stake-signing-and-validation)
     - [Creating](#creating)
     - [Validating](#validating)
-  - [Security Parameters](#security-parameters)
-  - [Acceptance Depth](#acceptance-depth)
   - [DAG Formation](#dag-formation)
   - [Conflict Sets](#conflict-sets)
   - [Sampling Loop](#sampling-loop)
   - [Vote Accumulation](#vote-accumulation)
   - [Joining Consensus](#joining-consensus)
   - [Post-finalization Mempool Update](#post-finalization-mempool-update)
+  - [Acceptance Depth](#acceptance-depth)
   - [New p2p Messages](#new-p2p-messages)
     - [Join](#join)
     - [Query](#query)
@@ -84,6 +84,17 @@ By replacing any rejected items in the mempool with their accepted counterpart, 
 
 # Specification
 
+## Security Parameters
+
+The security parameters, as defined in the Avalanche paper, are set as follows in our protocol:
+
+| **Name** |      **Value**      |                            **Description**                             |
+| :------: | :-----------------: | :--------------------------------------------------------------------: |
+|    n     | Variable, maximized |      The number of participants; we want to maximize this number.      |
+|    k     |          8          |              The number of samples to consider per round.              |
+|  𝛼, β   |       0.75, 6       | The percentage and absolute number of votes needed for a round quorum. |
+|    ε     |   2<sup>-32</sub>   |         The probability that a finalized item can be reversed.         |
+
 ## Support Signaling
 
 The follow service bit should be used by clients to signal to that they
@@ -125,23 +136,6 @@ In the future the following types could potentially be supported:
 ### Validating
 
 To validate a Join message and its stake a client must first generate the canonical serialized message by removing the signatures. Then it should check that the Identity signature correctly signs the canonical message. Next it needs to verify each outpoint signature against its matching committed outpoint, while simultaneously extracting the public key. Finally it load each of the committed UTXOs, check their type, check that the matching public key is correct, and ensure that Coin Blocks is sufficient.
-
-## Security Parameters
-
-The security parameters, as defined in the Avalanche paper, are set as follows in our protocol:
-
-| **Name** |      **Value**      |                            **Description**                             |
-| :------: | :-----------------: | :--------------------------------------------------------------------: |
-|    n     | Variable, maximized |      The number of participants; we want to maximize this number.      |
-|    k     |          8          |              The number of samples to consider per round.              |
-|  𝛼, β   |       0.75, 6       | The percentage and absolute number of votes needed for a round quorum. |
-|    ε     |   2<sup>-32</sub>   |         The probability that a finalized item can be reversed.         |
-
-## Acceptance Depth
-
-In order to stay in sync with the NC in the long term participants should recognize a particular Acceptance Depth ("AD") which is the number of blocks they're willing to remain behind the NC tip. When seeing a block >= the AD participants should collapse back to the PoW tip. Determining an ideal AD will require further research. A large AD could greatly increase resistance to chain reorganization attacks but means spending more time on the weakly subjective tip in cases of absolute failure.
-
-For now Snowglobe recommends using and AD of 0 while the protocol matures.
 
 ## DAG Formation
 
@@ -187,6 +181,12 @@ This is a best case and average case of 1 Snowball execution, and worst case of 
 ## Post-finalization Mempool Update
 
 When an item is finalized as accepted all conflicting items are automatically, implicitly, finalized as rejected. Nodes must ensure of their mempools the absence of any rejected items and presence of any accepted items as they finalize in order to mimic the other participants that have finalized those items.
+
+## Acceptance Depth
+
+In order to stay in sync with the NC in the long term participants should recognize a particular Acceptance Depth ("AD") which is the number of blocks they're willing to remain behind the NC tip. When seeing a block >= the AD participants should collapse back to the PoW tip. Determining an ideal AD will require further research. A large AD could greatly increase resistance to chain reorganization attacks but means spending more time on the weakly subjective tip in cases of absolute failure.
+
+For now Snowglobe recommends using and AD of 0 while the protocol matures.
 
 ## New p2p Messages
 
