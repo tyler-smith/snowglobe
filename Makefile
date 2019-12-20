@@ -30,4 +30,5 @@ clean_ui: ## Purge build artifacts
 
 deploy_infrastructure: ## Deploy proxy and docker changes
 	(cd ./infra && rsync -rav . snowglobe:/opt/snowglobe)
-	ssh snowglobe -C "cd /opt/snowglobe && docker-compose up -d"
+	ssh snowglobe -C "docker pull sherpacash/snowglobed:snowglobe; cd /opt/snowglobe && docker-compose up -d"
+
