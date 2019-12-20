@@ -31,9 +31,9 @@
     - [Query](#query)
     - [QueryResponse](#queryresponse)
 - [Future Improvements](#future-improvements)
-  - [Deduplicate UTXO signatures](#deduplicate-utxo-signatures)
   - [Short IDs](#short-ids)
   - [Short Votes](#short-votes)
+  - [Deduplicate UTXO signatures in Join messages](#deduplicate-utxo-signatures-in-join-messages)
   - [Noise authenticated tunnel](#noise-authenticated-tunnel)
   - [Increasing Acceptance Depth](#increasing-acceptance-depth)
 - [Implementations](#implementations)
@@ -225,10 +225,6 @@ When a peer receives a query it should respond with a message built as follows:
 
 The following items are things that would improve the protocol but have been omitted for now to keep the protocol simple.
 
-## Deduplicate UTXO signatures
-
-Currently ever UTXO in a Join message must have a matching signature, however each signature covers the same data and many UTXOs may be controlled by a single pubkey. In this case it would be acceptable to have only one signature for all of these UTXOs.
-
 ## Short IDs
 
 Query requests currently use full 32 byte transaction and block identifiers but this can be reduced significantly using various "short ID" mechanisms. This is a clear improvement to be made on memory and bandwidth consumption.
@@ -241,6 +237,10 @@ Currently votes in a query response are an entire byte each even though they're 
 2) Send a list of short IDs of no votes, then a bitmap of yes/abstain votes.
 
 The latter is more complex than the former but it has the potential to be more optimal on average assuming a low ratio of no votes to yes and abstain votes.
+
+## Deduplicate UTXO signatures in Join messages
+
+Currently ever UTXO in a Join message must have a matching signature, however each signature covers the same data and many UTXOs may be controlled by a single pubkey. In this case it would be acceptable to have only one signature for all of these UTXOs.
 
 ## Noise authenticated tunnel
 
