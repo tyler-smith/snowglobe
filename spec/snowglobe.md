@@ -3,7 +3,7 @@
   Author: Tyler Smith (tcrypt) <tylersmith.me@gmail.com>
   Status: Draft
   Created: 2019-10-01
-  License: MIT
+  License: Public Domain
 </pre>
 
 <!-- AUTO TOC -->
