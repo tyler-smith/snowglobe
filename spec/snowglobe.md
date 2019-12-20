@@ -277,7 +277,7 @@ Thank you to the following people for helping make this protocol possible:
 3. ["Embrace the DAG"](https://www.youtube.com/watch?v=9PygO-B1o6w) by [Amaury Séchet (deadalnix)](https://keybase.io/deadalnix) ([Archive](http://archive.is/S5LiB,))
 4. ["On markets and pre-consensus"](https://www.yours.org/content/on-markets-and-pre-consensus-4454add1bfbe) by Amaury Séchet ([Archive](http://archive.is/Zl5hu))
 5. ["The Problems Solved By Avalanche"](https://medium.com/@chrispacia/the-problems-solved-by-avalanche-5575a1b0d7bc) by [Chris Pacia (cpacia)](https://keybase.io/chrispacia) ([Archive](http://archive.is/3ZlKC))
-6. ["Avalanche Post-Consensus: Making Bitcoin Cash Indestructible"](https://www.yours.org/content/on-markets-and-pre-consensus-4454add1bfbe) by [Antony Zegers (Mengerian)](https://twitter.com/antonyzegers) ([Archive](http://archive.is/jYPkm))
+6. ["Avalanche Post-Consensus: Making Bitcoin Cash Indestructible"](https://medium.com/@Mengerian/avalanche-post-consensus-making-bitcoin-cash-indestructible-2464b1ae0382) by [Antony Zegers (Mengerian)](https://twitter.com/antonyzegers) ([Archive](http://archive.is/jYPkm))
 7. [Noise Protocol](http://www.noiseprotocol.org/)
 
 # Copyright
