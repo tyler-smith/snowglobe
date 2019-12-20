@@ -27,10 +27,10 @@
     - [Query](#query)
     - [QueryResponse](#queryresponse)
   - [Joining Full Consensus](#joining-full-consensus)
-  - [Maintaining Consensus](#maintaining-consensus)
 - [Future Improvements](#future-improvements)
   - [Deduplicated UTXO signatures](#deduplicated-utxo-signatures)
   - [Short IDs](#short-ids)
+  - [Short Votes](#short-votes)
   - [Noise authenticated tunnel](#noise-authenticated-tunnel)
 - [Implementations](#implementations)
 - [Acknowledgments](#acknowledgments)
@@ -92,10 +92,14 @@ NODE_SNOWGLOBE = (1 << 26)
 
 ## Security Parameters
 
-n
-k
-alpha
-epsilon
+The security parameters, as defined in the Avalanche paper, are set as follows in our protocol:
+
+| **Name** |      **Value**      |                            **Description**                             |
+| :------: | :-----------------: | :--------------------------------------------------------------------: |
+|    n     | Variable, maximized |      The number of participants; we want to maximize this number.      |
+|    k     |          8          |              The number of samples to consdier per round.              |
+|   𝛼,β   |       0.75, 6       | The percentage and absolute number of votes needed for a round quorum. |
+|    ε     |   2<sup>-32</sub>   |         The probability that a finalized item can be reversed.         |
 
 ## Acceptance Depth
 
@@ -105,26 +109,15 @@ For now Snowglobe recommends using and AD of 0 while the protocol matures.
 
 ## Sybil resistance via coin age
 
-Sybil resistance is provided by requiring peers offering the Query service to
-commit to a set of UTXOs that have a sufficient coin amount times block age,
-which we denote with the unit "Coin Blocks", or CB. If a Join message
-received by a Query peer does not meet the sufficient Coin Blocks threshold that
-peer must not be added to the Snowglobe Pool and should be banned.
+Sybil resistance is provided by requiring peers offering the Query service to commit to a set of UTXOs that have a sufficient coin amount times block age, which we denote with the unit "Coin Blocks", or CB. If a Join message received by a Query peer does not meet the sufficient Coin Blocks threshold that peer must not be added to the Snowglobe Pool and should be banned.
 
 The initial temporary amount required is 1440 Coin Blocks.
 
 ## DAG and conflict-set Formation
 
-The heart of Avalanche's efficiency is in the DAG that allows us to accept or
-reject entire chains of states with a single Snowball instance. The more
-connected the graph is the fewer Snowball instances need to be performed to
-finalize all states, however if forming the graph is too complex much or all of
-these gains will be used up constructing graph edges.
+The heart of Avalanche's efficiency is in the DAG that allows us to accept or reject entire chains of states with a single Snowball instance. The more connected the graph is the fewer Snowball instances need to be performed to finalize all states, however if forming the graph is too complex much or all of these gains will be used up constructing graph edges.
 
-The solution is to use all naturally forming, objective edges already present in
-the chain already and no more. We define the edges of the graph recursively by
-defining the incoming edges for a given vertex. The edges for a vertex depends
-on its type and are as follows:
+The solution is to use all naturally forming, objective edges already present in the chain already and no more. We define the edges of the graph recursively by defining the incoming edges for a given vertex. The edges for a vertex depends on its type and are as follows:
 
 TODO: finish
 
@@ -161,9 +154,7 @@ When an item is finalized as accepted all conflicting items are automatically, i
 
 ### Join
 
-When a node wants to advertise to a protocol-aware client that it is offering
-its local state for sampling, it should send them a Join message built as
-follows:
+When a node wants to advertise to a protocol-aware client that it is offering its local state for sampling, it should send them a Join message built as follows:
 
 | **Size** |     **Name**      |  **Type**   |                                                                **Description**                                                                 |
 | :------: | :---------------: | :---------: | :--------------------------------------------------------------------------------------------------------------------------------------------: |
@@ -176,8 +167,7 @@ follows:
 
 ### Query
 
-When a client wants to sample a node for a set of vertices it should send them
-a Query message build as follows:
+When a client wants to sample a node for a set of vertices it should send them a Query message build as follows:
 
 | **Size** | **Name** |  **Type**   |                          **Description**                          |
 | :------: | :------: | :---------: | :---------------------------------------------------------------: |
@@ -195,51 +185,38 @@ When a peer receives a query it should respond with a message built as follows:
 
 ## Joining Full Consensus
 
-When a client first starts up it should refresh its pool of nodes available for
-sampling. It can do this with a combination of checking nodes they know with the
-appropriate service bit set, a domain-specific DNS seed, and other standard
-techniques for finding peers on a p2p network.
+When a client first starts up it should refresh its pool of nodes available for sampling. It can do this with a combination of checking nodes they know with the appropriate service bit set, a domain-specific DNS seed, and other standard techniques for finding peers on a p2p network.
 
-Next a client must sync to the tip block; the one with the most proof of work
-visible to the client. From here the client should begin iteratively checking
-blocks backwards, from tip to Genesis, until it finds a block that has been
-accepted by the client's queriable peers. They now know that block, all of its
-ancestors, and every transaction contained within those blocks have been
-finalized as accepted by the network.
+Next a client must sync to the tip block; the one with the most proof of work visible to the client. From here the client should begin iteratively checking blocks backwards, from tip to Genesis, until it finds a block that has been accepted by the client's queriable peers. They now know that block, all of its ancestors, and every transaction contained within those blocks have been finalized as accepted by the network. From this point the node only needs to consider new items.
 
 This is a best case and average case of 1 Snowball execution, and worst case of AD executions.
 
-## Maintaining Consensus
-
-TODO:
-
 # Future Improvements
 
-The following items are things that would improve the protocol but have been
-omitted for now to keep the protocol simple.
+The following items are things that would improve the protocol but have been omitted for now to keep the protocol simple.
 
 ## Deduplicated UTXO signatures
 
-Currently ever UTXO in a Join message must have a matching signature, however
-each signature covers the same data and many UTXOs may be controlled by a single
-pubkey. In this case it would be acceptable to have only one signature for all
-of these UTXOs.
+Currently ever UTXO in a Join message must have a matching signature, however each signature covers the same data and many UTXOs may be controlled by a single pubkey. In this case it would be acceptable to have only one signature for all of these UTXOs.
 
 ## Short IDs
 
-Query requests currently use full 32 byte transaction and block identifiers but
-this can be reduced significantly using various "short ID" mechanisms. This is a
-clear improvement to be made on memory and bandwidth consumption.
+Query requests currently use full 32 byte transaction and block identifiers but this can be reduced significantly using various "short ID" mechanisms. This is a clear improvement to be made on memory and bandwidth consumption.
+
+## Short Votes
+
+Currently votes in a query response are an entire byte each even though they're only communication 1.5 bits of information (yes, no, or abstain). Two options for optimizing this are:
+
+1) Packings 4 votes into a byte; 2 bits per vote.
+2) Send a list of short IDs of no votes, then a bitmap of yes/abstain votes.
+
+The latter is more complex than the former but it has the potential to be more optimal on average assuming a low ratio of no votes to yes and abstain votes.
 
 ## Noise authenticated tunnel
 
-The current protocol requires signing every query response to validate its
-authenticity which is likely to become a bottleneck at scale. We can improve
-this situation by having peers connect using an authenticated communication
-tunnel.
+The current protocol requires signing every query response to validate its authenticity which is likely to become a bottleneck at scale. We can improve this situation by having peers connect using an authenticated communication tunnel.
 
-Using a protocol conforming to the Noise<sup>[[5]](#References)</sup> framework using QUIC for transport
-is under development by Bitcoin ABC.
+Using a protocol conforming to the Noise<sup>[[5]](#References)</sup> framework using QUIC for transport is under development by Bitcoin ABC.
 
 # Implementations
 
@@ -253,8 +230,7 @@ Thanks to [Amaury Séchet (deadalnix)](https://keybase.io/deadalnix) for the bas
 
 Thanks to [Chris Pacia (cpacia)](https://keybase.io/chrispacia) for wiring the initial Avalanche code into bchd as a base for pre-consensus.
 
-Thanks to [Emin Gün Sirer](https://keybase.io/egs) and [Colin Cusce](https://twitter.com/collincusce) for helping me understand various
-aspects of the Avalanche family of algorithms.
+Thanks to [Emin Gün Sirer](https://keybase.io/egs) and [Colin Cusce](https://twitter.com/collincusce) for helping me understand various aspects of the Avalanche family of algorithms.
 
 # References
 
